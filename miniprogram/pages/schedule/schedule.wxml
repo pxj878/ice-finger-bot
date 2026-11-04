@@ -1,0 +1,60 @@
+<view class="wrap">
+  <view class="row" style="justify-content:space-between">
+    <view>
+      <text class="hd-t">定时任务</text>
+      <text class="sub">共 {{tasks.length}} 条，最多 16 条</text>
+    </view>
+    <view class="row">
+      <switch checked="{{sched}}" bindchange="onSched" color="#38bdf8" />
+    </view>
+  </view>
+
+  <text class="hint" wx:if="{{hint}}">{{hint}}</text>
+
+  <view class="card" wx:if="{{tasks.length === 0 && !hint}}">
+    <text class="sub">还没有任务。点「添加任务」建立第一条，例如 07:30 开机、22:30 关机。</text>
+  </view>
+
+  <view class="task {{item.enabled ? '' : 'off'}}" wx:for="{{tasks}}" wx:key="index">
+    <view class="row" style="justify-content:space-between">
+      <view class="row">
+        <text class="lab">启用</text>
+        <switch checked="{{item.enabled}}" bindchange="onEnabled" data-i="{{index}}" color="#38bdf8" />
+      </view>
+      <view class="row">
+        <text class="lab">单次</text>
+        <switch checked="{{item.once}}" bindchange="onOnce" data-i="{{index}}" color="#38bdf8" />
+      </view>
+    </view>
+
+    <view class="row" style="margin-top:14rpx">
+      <picker mode="time" value="{{item.timeText}}" bindchange="onTime" data-i="{{index}}">
+        <view class="input" style="min-width:180rpx">{{item.timeText}}</view>
+      </picker>
+      <picker mode="selector" range="{{ACT}}" value="{{item.action}}" bindchange="onAction" data-i="{{index}}">
+        <view class="input" style="min-width:150rpx">{{ACT[item.action]}}</view>
+      </picker>
+      <button class="btn btn-danger" style="padding:12rpx 20rpx" bindtap="del" data-i="{{index}}">删除</button>
+    </view>
+
+    <checkbox-group class="days" style="margin-top:14rpx" bindchange="onDays" data-i="{{index}}">
+      <label class="day {{item.dayOn[k] ? 'on' : ''}}" wx:for="{{DOW}}" wx:for-item="d" wx:for-index="k" wx:key="*this">
+        <checkbox value="{{k}}" checked="{{item.dayOn[k]}}" style="display:none" />
+        {{d}}
+      </label>
+    </checkbox-group>
+
+    <text class="sub" style="margin-top:10rpx" wx:if="{{item.lastRun}}">上次执行：{{item.lastRun}}</text>
+  </view>
+
+  <view class="row" style="margin-top:20rpx">
+    <button class="btn" style="flex:1" bindtap="add">+ 添加任务</button>
+    <button class="btn btn-primary" style="flex:1" bindtap="save">保存</button>
+  </view>
+
+  <view class="foot">
+    <text wx:if="{{cloudMode}}">云端定时：任务保存在巴法云，只支持「开/关」，不支持「切换」和「单次」；设备离线时会漏执行</text>
+    <block wx:else>时间为设备本地时间，需先对时<br />
+    开机 = 只在关机状态下按一次；切换 = 无条件按一次</block>
+  </view>
+</view>

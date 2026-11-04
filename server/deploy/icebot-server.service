@@ -1,0 +1,30 @@
+[Unit]
+Description=IceBot cloud relay (制冰机手指机器人中转服务)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 改成你的实际路径和用户
+User=icebot
+Group=icebot
+WorkingDirectory=/opt/icebot/server
+Environment=NODE_ENV=production
+Environment=PORT=8080
+# ↓↓↓ 正式部署前改成随机串（openssl rand -hex 24）↓↓↓
+Environment=DEVICE_TOKEN=CHANGE_ME_DEVICE_TOKEN
+Environment=APP_TOKEN=CHANGE_ME_APP_TOKEN
+Environment=DATA_FILE=/var/lib/icebot/state.json
+ExecStart=/usr/bin/node /opt/icebot/server/server.js
+Restart=always
+RestartSec=3
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/icebot
+
+[Install]
+WantedBy=multi-user.target

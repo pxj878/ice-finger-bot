@@ -1,0 +1,4 @@
+.field .input {
+  text-align: right;
+  max-width: 55%;
+}

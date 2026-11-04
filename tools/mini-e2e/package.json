@@ -1,0 +1,13 @@
+{
+  "name": "ice-bot-mini-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "制冰机手指机器人 - 小程序端自动化回归测试",
+  "main": "mini-e2e.js",
+  "scripts": {
+    "test": "node mini-e2e.js"
+  },
+  "dependencies": {
+    "miniprogram-automator": "^0.12.0"
+  }
+}

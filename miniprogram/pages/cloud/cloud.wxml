@@ -1,0 +1,44 @@
+<view class="wrap">
+  <view class="hd">
+    <view class="dot {{offline ? 'busy' : 'live'}}"></view>
+    <text class="hd-t">云端模式</text>
+  </view>
+  <text class="sub">通过微信云开发中转，手机不在家里 WiFi 也能控制</text>
+
+  <view class="card" wx:if="{{err}}">
+    <text class="hint">{{err}}</text>
+    <text class="sub" style="margin-top:10rpx">按 docs/cloud.md 的步骤：开通云开发 → 填 cloud-config.js 的 env → 部署云函数 icebot</text>
+  </view>
+
+  <view class="card" wx:if="{{ready}}">
+    <view class="card-t">设备状态（云端）</view>
+    <view class="grid">
+      <view class="kv"><text class="k">制冰机</text><text class="v">{{status.power ? '开机中' : '已关机'}}</text></view>
+      <view class="kv"><text class="k">舵机角度</text><text class="v">{{status.cur || '-'}}°</text></view>
+      <view class="kv"><text class="k">设备 IP</text><text class="v">{{status.ip || '-'}}</text></view>
+      <view class="kv"><text class="k">任务数</text><text class="v">{{status.tasks || 0}} 条</text></view>
+      <view class="kv"><text class="k">最后上报</text><text class="v">{{offline ? '离线 >30s' : '在线'}}</text></view>
+      <view class="kv"><text class="k">设备时间</text><text class="v">{{status.time ? status.time : '-'}}</text></view>
+    </view>
+
+    <view class="sep"></view>
+    <view class="row">
+      <button class="btn btn-primary" bindtap="act" data-a="press" disabled="{{busy}}">👆 按一下</button>
+      <button class="btn btn-ok" bindtap="act" data-a="on" disabled="{{busy}}">开机</button>
+      <button class="btn" bindtap="act" data-a="off" disabled="{{busy}}">关机</button>
+    </view>
+    <text class="sub" style="margin-top:12rpx">指令会排队，设备每 5 秒轮询取一次（最长 5 秒延迟）</text>
+  </view>
+
+  <view class="card" wx:if="{{ready}}">
+    <view class="card-t">舵机角度</view>
+    <view class="row" style="justify-content:space-between">
+      <text class="lab">目标角度</text>
+      <text class="val">{{angle}}°</text>
+    </view>
+    <slider min="0" max="180" step="1" value="{{angle}}" activeColor="#38bdf8" block-size="22" bindchange="onAngle" />
+    <button class="btn" bindtap="sendAngle">下发角度</button>
+  </view>
+
+  <view class="foot">云函数：icebot · 环境：{{status.ip ? '已连接' : '未连接'}}</view>
+</view>

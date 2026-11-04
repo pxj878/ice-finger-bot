@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e1116">
+<title>制冰机手指机器人</title>
+<style>
+:root{--bg:#0e1116;--card:#171c24;--line:#252c38;--txt:#e6ebf2;--sub:#8b97a8;--acc:#38bdf8;--ok:#34d399;--warn:#fbbf24;--err:#f87171}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:14px 12px 40px;max-width:720px;margin:0 auto}
+h1{font-size:19px;margin:6px 0 2px;display:flex;gap:8px;align-items:center}
+h2{font-size:15px;margin:0 0 12px;color:var(--sub);font-weight:600;letter-spacing:.5px}
+.sub{color:var(--sub);font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 12px}
+.kv span{display:block;font-size:12px;color:var(--sub)}
+.kv b{font-weight:600;font-size:14px;word-break:break-all}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;border-radius:10px;border:1px solid var(--line);background:#202836;color:var(--txt);padding:9px 14px;cursor:pointer;transition:.15s}
+button:active{transform:scale(.97)}
+button.primary{background:var(--acc);border-color:var(--acc);color:#04121c;font-weight:700}
+button.ok{background:#12352a;border-color:#1e6b52;color:var(--ok)}
+button.danger{background:#3a1a1a;border-color:#6b2323;color:var(--err)}
+button.sm{padding:5px 9px;font-size:13px;border-radius:8px}
+input,select{font:inherit;background:#0f141b;border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 10px;min-width:0}
+input[type=time]{width:120px}
+input[type=range]{padding:0;width:100%;background:none;border:none}
+label.fld{display:block;margin:10px 0 0;font-size:13px;color:var(--sub)}
+label.fld input,label.fld select{width:100%;margin-top:5px}
+.task{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:#141920}
+.task.off{opacity:.45}
+.days{display:flex;gap:4px}
+.days button{width:30px;height:30px;padding:0;border-radius:8px;font-size:12px;color:var(--sub)}
+.days button.on{background:#0f3b52;border-color:var(--acc);color:var(--acc)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--sub);display:inline-block}
+.dot.live{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.busy{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:#0b2a1f;color:#a7f3d0;border:1px solid #1e6b52;padding:10px 18px;border-radius:12px;opacity:0;transition:.25s;font-size:14px;pointer-events:none;z-index:9}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.bad{background:#2b1212;color:#fecaca;border-color:#7f1d1d}
+.sep{height:1px;background:var(--line);margin:12px -14px}
+.log{font:12px/1.7 ui-monospace,Consolas,monospace;color:var(--sub);max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.foot{text-align:center;color:#566172;font-size:12px;margin-top:18px;line-height:1.9}
+</style>
+</head>
+<body>
+
+<h1><span class="dot" id="dot"></span>制冰机手指机器人</h1>
+<div class="sub" id="hdrinfo">连接中…</div>
+
+<div class="card">
+  <h2>设备状态</h2>
+  <div class="grid">
+    <div class="kv"><span>制冰机</span><b id="st-power">-</b></div>
+    <div class="kv"><span>舵机</span><b id="st-servo">-</b></div>
+    <div class="kv"><span>网络</span><b id="st-wifi">-</b></div>
+    <div class="kv"><span>IP 地址</span><b id="st-ip">-</b></div>
+    <div class="kv"><span>设备时间</span><b id="st-time">-</b></div>
+    <div class="kv"><span>运行时长</span><b id="st-up">-</b></div>
+    <div class="kv"><span>舵机当前角度</span><b id="st-angle">-</b></div>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <button class="primary" onclick="act('press')">👆 按一下</button>
+    <button class="ok" onclick="act('on')">设为开机</button>
+    <button onclick="act('off')">设为关机</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>定时任务 <span class="sub" id="taskcount"></span></h2>
+  <div class="row" style="margin-bottom:10px">
+    <label class="row" style="gap:6px;font-size:13px;color:var(--sub)">
+      <input type="checkbox" id="schedEnabled" onchange="saveSched()"> 启用定时
+    </label>
+    <span style="flex:1"></span>
+    <button class="sm" onclick="addTask()">+ 添加</button>
+    <button class="sm primary" onclick="saveTasks()">保存</button>
+  </div>
+  <div id="taskList"></div>
+  <div class="sub">星期可多选；「单次」执行一次后自动关闭。</div>
+</div>
+
+<div class="card">
+  <h2>舵机校准</h2>
+  <label class="fld">抬起角度 <b id="vRest">25</b>° <span class="sub">（手指离开按钮）</span>
+    <input type="range" id="restAngle" min="0" max="120" step="1" value="25" oninput="onSlide('rest')">
+  </label>
+  <div class="row">
+    <button class="sm" onclick="nudge('rest',-5)">−5°</button>
+    <button class="sm" onclick="nudge('rest',-1)">−1°</button>
+    <button class="sm" onclick="nudge('rest',1)">+1°</button>
+    <button class="sm" onclick="nudge('rest',5)">+5°</button>
+    <button class="sm" onclick="preview('rest')">预览抬起角</button>
+  </div>
+
+  <label class="fld">压下角度 <b id="vPress">75</b>° <span class="sub">（手指按下按钮）</span>
+    <input type="range" id="pressAngle" min="10" max="180" step="1" value="75" oninput="onSlide('press')">
+  </label>
+  <div class="row">
+    <button class="sm" onclick="nudge('press',-5)">−5°</button>
+    <button class="sm" onclick="nudge('press',-1)">−1°</button>
+    <button class="sm" onclick="nudge('press',1)">+1°</button>
+    <button class="sm" onclick="nudge('press',5)">+5°</button>
+    <button class="sm" onclick="preview('press')">预览压下角</button>
+  </div>
+
+  <label class="fld">按住时长（毫秒）
+    <input type="number" id="holdMs" min="50" max="3000" step="50" value="450">
+  </label>
+  <label class="row" style="gap:6px;font-size:13px;color:var(--sub);margin-top:8px">
+    <input type="checkbox" id="liveFollow" checked> 拖滑块时舵机跟随（自动预览）
+  </label>
+  <div class="row" style="margin-top:12px">
+    <button class="sm" onclick="preview(0)">回 0°</button>
+    <button class="sm" onclick="preview(180)">到 180°</button>
+    <button class="sm" onclick="saveServo()">保存角度</button>
+    <button class="sm primary" onclick="testPress()">试按一次</button>
+  </div>
+  <div class="sub">校准提示：先调到刚好碰到按钮再压下 2~3mm；按不动就加大压下角度。预览会让舵机停在目标角度，保存或再按一次会回位。</div>
+</div>
+
+<div class="card">
+  <h2>网络设置</h2>
+  <label class="fld">WiFi 名称
+    <input id="ssid" placeholder="家里的 WiFi 名称" autocomplete="off">
+  </label>
+  <div class="row" style="margin-top:8px">
+    <button class="sm" onclick="scan()">扫描附近 WiFi</button>
+    <span class="sub" id="scanInfo"></span>
+  </div>
+  <div id="scanList" class="row" style="margin-top:8px"></div>
+  <label class="fld">WiFi 密码
+    <input id="pass" type="password" placeholder="留空则不修改" autocomplete="off">
+  </label>
+  <label class="fld">设备名称（mDNS）
+    <input id="host" placeholder="icebot">
+  </label>
+  <label class="fld">时区（东八区 = 480 分钟）
+    <input id="tzMin" type="number" step="30" value="480">
+  </label>
+  <div class="sep"></div>
+  <label class="row" style="gap:6px;font-size:13px;color:var(--sub)">
+    <input type="checkbox" id="staticIp" onchange="toggleIp()"> 使用固定 IP（不依赖路由器分配）
+  </label>
+  <div id="ipFields">
+    <label class="fld">IP 地址 <input id="ip" placeholder="192.168.2.50" autocomplete="off"></label>
+    <label class="fld">子网掩码 <input id="mask" placeholder="255.255.255.0" autocomplete="off"></label>
+    <label class="fld">网关 <input id="gw" placeholder="192.168.2.1" autocomplete="off"></label>
+    <label class="fld">DNS <input id="dns" placeholder="223.5.5.5" autocomplete="off"></label>
+    <div class="row" style="margin-top:10px">
+      <button class="sm primary" onclick="saveIp()">保存 IP 并重启</button>
+    </div>
+    <div class="sub">填一个路由器 DHCP 范围之外的地址（比如 .50 以上），避免和别的设备撞车。填错也没事：设备热点还在，连热点打开 192.168.4.1 就能改回来。</div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <button class="sm primary" onclick="saveWifi()">保存并重启</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>系统</h2>
+  <div class="row">
+    <button class="sm" onclick="syncTime()">用浏览器时间对时</button>
+    <button class="sm" onclick="loadLogs()">刷新日志</button>
+    <button class="sm danger" onclick="resetDev()">恢复出厂</button>
+  </div>
+  <div class="log" id="logs" style="margin-top:10px">-</div>
+</div>
+
+<div class="foot">
+  固件 v<span id="fw">-</span> · 接口文档见项目 docs/api.md<br>
+  <span id="apiHint"></span>
+</div>
+<div id="toast"></div>
+
+<script>
+const DOW = ['一','二','三','四','五','六','日'];
+const ACT = ['开机','关机','切换'];
+let tasks = [];
+let cfg = {};
+let timer = null;
+
+function $(id) { return document.getElementById(id); }
+
+function toast(msg, ok = true) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show' + (ok ? '' : ' bad');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.className = ok ? '' : 'bad'; }, 2200);
+}
+
+async function api(path, method = 'GET', body) {
+  const opt = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opt.body = JSON.stringify(body);
+  const r = await fetch(path, opt);
+  return await r.json();
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function fmtUp(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return (d ? d + '天' : '') + h + '小时' + m + '分';
+}
+
+async function refresh() {
+  try {
+    const s = await api('/api/status');
+    $('dot').className = 'dot ' + (s.busy ? 'busy' : 'live');
+    $('hdrinfo').textContent = (s.mode || '') + ' · ' + (s.name || '') + ' · ' + (s.ip || '') +
+      (s.rssi ? ' · ' + s.rssi + 'dBm' : '');
+    $('st-power').textContent = s.power ? '开机中' : '已关机';
+    $('st-servo').textContent = s.busy ? '动作中…' : '待机';
+    $('st-wifi').textContent = s.ssid ? s.ssid : '未连接';
+    $('st-ip').textContent = s.ip || s.apIp || '-';
+    $('st-time').textContent = s.timeOk ? s.time : '未同步';
+    $('st-up').textContent = fmtUp(s.uptime || 0);
+    $('st-angle').textContent = (s.cur === undefined) ? '-' : (s.cur + '°');
+    $('fw').textContent = s.fw || '-';
+  } catch (e) {
+    $('dot').className = 'dot';
+    $('hdrinfo').textContent = '设备无响应，请检查连接';
+  }
+}
+
+async function act(a) {
+  try {
+    const r = await api('/api/action', 'POST', { action: a });
+    toast(r.ok ? '✓ 已执行' : (r.msg || '失败'), r.ok);
+    refresh();
+  } catch (e) { toast('请求失败', false); }
+}
+
+function renderTasks() {
+  const box = $('taskList');
+  if (!tasks.length) {
+    box.innerHTML = '<div class="sub" style="padding:8px 0">还没有任务，点「+ 添加」。</div>';
+    $('taskcount').textContent = '';
+    return;
+  }
+  box.innerHTML = tasks.map((t, i) => {
+    const days = DOW.map((d, k) =>
+      '<button class="' + ((t.days >> k) & 1 ? 'on' : '') + '" onclick="toggleDay(' + i + ',' + k + ')">' + d + '</button>'
+    ).join('');
+    const opts = ACT.map((a, k) =>
+      '<option value="' + k + '"' + (t.action === k ? ' selected' : '') + '>' + a + '</option>').join('');
+    return '<div class="task ' + (t.enabled ? '' : 'off') + '">' +
+      '<input type="checkbox" ' + (t.enabled ? 'checked' : '') + ' onchange="upd(' + i + ',\'enabled\',this.checked)">' +
+      '<input type="time" value="' + pad2(t.hour) + ':' + pad2(t.minute) + '" onchange="upd(' + i + ',\'time\',this.value)">' +
+      '<select onchange="upd(' + i + ',\'action\',+this.value)">' + opts + '</select>' +
+      '<div class="days">' + days + '</div>' +
+      '<label class="sub row" style="gap:4px"><input type="checkbox" ' + (t.once ? 'checked' : '') +
+      ' onchange="upd(' + i + ',\'once\',this.checked)">单次</label>' +
+      '<button class="sm danger" onclick="delTask(' + i + ')">×</button>' +
+      '</div>';
+  }).join('');
+  $('taskcount').textContent = '（' + tasks.length + ' 条）';
+}
+
+function upd(i, k, v) {
+  if (k === 'time') {
+    const p = v.split(':');
+    tasks[i].hour = +p[0];
+    tasks[i].minute = +p[1];
+  } else {
+    tasks[i][k] = v;
+  }
+  renderTasks();
+}
+
+function toggleDay(i, k) {
+  tasks[i].days ^= (1 << k);
+  renderTasks();
+}
+
+function addTask() {
+  if (tasks.length >= 16) { toast('最多 16 条任务', false); return; }
+  tasks.push({ enabled: true, hour: 8, minute: 0, days: 127, action: 0, once: false, lastRun: '' });
+  renderTasks();
+}
+
+function delTask(i) {
+  tasks.splice(i, 1);
+  renderTasks();
+}
+
+async function saveTasks() {
+  const s = $('schedEnabled').checked;
+  const r = await api('/api/config', 'POST', { schedEnabled: s });
+  const r2 = await api('/api/tasks', 'POST', { tasks });
+  toast(r2.ok ? '✓ 定时任务已保存' : (r2.msg || '保存失败'), r2.ok);
+}
+
+async function saveSched() {
+  const r = await api('/api/config', 'POST', { schedEnabled: $('schedEnabled').checked });
+  toast(r.ok ? '✓ 已保存' : '保存失败', r.ok);
+}
+
+async function saveServo() {
+  const r = await api('/api/config', 'POST', {
+    restAngle: +$('restAngle').value,
+    pressAngle: +$('pressAngle').value,
+    holdMs: +$('holdMs').value
+  });
+  toast(r.ok ? '✓ 舵机参数已保存' : '保存失败', r.ok);
+}
+
+async function testPress() {
+  await saveServo();
+  await new Promise(r => setTimeout(r, 250));
+  act('press');
+}
+
+// 直接把舵机摆到某个角度（校准用）
+async function preview(v) {
+  const angle = (typeof v === 'number') ? v : +(v === 'rest' ? $('restAngle').value : $('pressAngle').value);
+  try {
+    const r = await api('/api/action', 'POST', { action: 'angle', angle });
+    if (!r.ok) toast(r.msg || '失败', false);
+  } catch (e) {
+    toast('请求失败', false);
+  }
+}
+
+let liveTimer = null;
+
+// 拖动滑块：更新数字，勾了「跟随」就自动预览（防抖 200ms）
+function onSlide(which) {
+  const el = which === 'rest' ? $('restAngle') : $('pressAngle');
+  $(which === 'rest' ? 'vRest' : 'vPress').textContent = el.value;
+  if ($('liveFollow') && $('liveFollow').checked) {
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => preview(which), 200);
+  }
+}
+
+// 微调按钮：±1° / ±5°
+function nudge(which, d) {
+  const el = which === 'rest' ? $('restAngle') : $('pressAngle');
+  let v = (+el.value) + d;
+  v = Math.max(+el.min, Math.min(+el.max, v));
+  el.value = v;
+  onSlide(which);
+  if (!($('liveFollow') && $('liveFollow').checked)) preview(which);
+}
+
+async function scan() {
+  $('scanInfo').textContent = '扫描中…';
+  try {
+    const r = await api('/api/scan');
+    $('scanInfo').textContent = '';
+    $('scanList').innerHTML = (r.networks || []).map(n =>
+      '<button class="sm" onclick="$(\'ssid\').value=\'' + String(n.ssid).replace(/'/g, '') + '\'">' +
+      n.ssid + ' <span class="sub">' + n.rssi + '</span></button>').join('') ||
+      '<span class="sub">没扫到网络</span>';
+  } catch (e) {
+    $('scanInfo').textContent = '扫描失败';
+  }
+}
+
+async function saveWifi() {
+  const ssid = $('ssid').value.trim();
+  if (!ssid) { toast('请填写 WiFi 名称', false); return; }
+  const pass = $('pass').value;
+  const body = { ssid, host: $('host').value.trim() || 'icebot', tzMin: +$('tzMin').value };
+  if (pass) body.pass = pass;
+  const r = await api('/api/config', 'POST', body);
+  if (!r.ok) { toast(r.msg || '保存失败', false); return; }
+  toast('✓ 已保存，设备正在重启…');
+  setTimeout(() => { $('hdrinfo').textContent = '设备重启中，请重新连接'; }, 800);
+}
+
+// ---- 固定 IP ----
+function toggleIp() {
+  const on = $('staticIp').checked;
+  $('ipFields').style.display = on ? 'block' : 'none';
+}
+
+async function saveIp() {
+  const on = $('staticIp').checked;
+  if (on && (!$('ip').value.trim() || !$('gw').value.trim())) {
+    toast('请填写 IP 和网关', false);
+    return;
+  }
+  const body = {
+    staticIp: on,
+    ip: $('ip').value.trim(),
+    mask: $('mask').value.trim() || '255.255.255.0',
+    gw: $('gw').value.trim(),
+    dns: $('dns').value.trim() || '223.5.5.5'
+  };
+  const r = await api('/api/config', 'POST', body);
+  toast(r.ok ? '✓ 已保存，设备重启中…' : (r.msg || '保存失败'), r.ok);
+  if (r.ok) setTimeout(() => { $('hdrinfo').textContent = '设备重启中，请用新 IP 访问'; }, 800);
+}
+
+async function syncTime() {
+  const epoch = Math.floor(Date.now() / 1000);
+  const tzMin = -new Date().getTimezoneOffset();
+  const r = await api('/api/time', 'POST', { epoch, tzMin });
+  toast(r.ok ? '✓ 时间已同步' : '对时失败', r.ok);
+  refresh();
+}
+
+async function loadLogs() {
+  try {
+    const r = await api('/api/logs');
+    $('logs').textContent = (r.logs || []).join('\n') || '-';
+  } catch (e) { $('logs').textContent = '读取失败'; }
+}
+
+async function resetDev() {
+  if (!confirm('恢复出厂会清空 WiFi 和定时任务，确定？')) return;
+  await api('/api/reset', 'POST', {});
+  toast('已恢复出厂，设备重启中…');
+}
+
+async function boot() {
+  try {
+    cfg = await api('/api/config');
+    tasks = (await api('/api/tasks')).tasks || [];
+    $('schedEnabled').checked = !!cfg.schedEnabled;
+    $('restAngle').value = cfg.restAngle; $('vRest').textContent = cfg.restAngle;
+    $('pressAngle').value = cfg.pressAngle; $('vPress').textContent = cfg.pressAngle;
+    $('holdMs').value = cfg.holdMs;
+    $('ssid').value = cfg.ssid || '';
+    $('host').value = cfg.host || 'icebot';
+    $('tzMin').value = cfg.tzMin;
+    $('staticIp').checked = !!cfg.staticIp;
+    $('ip').value = cfg.ip || '';
+    $('mask').value = cfg.mask || '255.255.255.0';
+    $('gw').value = cfg.gw || '';
+    $('dns').value = cfg.dns || '223.5.5.5';
+    toggleIp();
+    $('apiHint').textContent = '接口基址: ' + location.origin + '/api';
+    renderTasks();
+  } catch (e) { toast('读取配置失败', false); }
+  refresh();
+  loadLogs();
+  timer = setInterval(refresh, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

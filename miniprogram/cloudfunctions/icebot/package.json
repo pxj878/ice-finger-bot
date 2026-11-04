@@ -1,0 +1,9 @@
+{
+  "name": "icebot",
+  "version": "1.0.0",
+  "description": "制冰机手指机器人 - 云端中转云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

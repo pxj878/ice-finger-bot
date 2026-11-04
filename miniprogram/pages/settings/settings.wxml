@@ -1,0 +1,104 @@
+<view class="wrap">
+  <text class="hint" wx:if="{{hint}}">{{hint}}</text>
+
+  <view class="card">
+    <view class="card-t">连接方式</view>
+    <view class="row">
+      <button class="btn {{mode === 'lan' ? 'btn-primary' : ''}}" bindtap="onMode" data-m="lan">局域网直连</button>
+      <button class="btn {{mode === 'bemfa' ? 'btn-primary' : ''}}" bindtap="onMode" data-m="bemfa">巴法云（远程）</button>
+    </view>
+    <text class="sub" style="margin-top:12rpx">局域网：手机要连同一个 WiFi，功能最全。
+巴法云：出门也能用，但只能开关和云端定时。</text>
+
+    <block wx:if="{{mode === 'bemfa'}}">
+      <input class="input" style="width:100%;margin-top:14rpx" value="{{bemfaUid}}" bindinput="onBemfaUid" placeholder="巴法云私钥（32 位）" />
+      <input class="input" style="width:100%;margin-top:12rpx" value="{{bemfaTopic}}" bindinput="onBemfaTopic" placeholder="主题，如 bingji006" />
+      <view class="row" style="margin-top:14rpx">
+        <button class="btn btn-primary" bindtap="saveBemfa">保存并测试</button>
+      </view>
+      <text class="sub" style="margin-top:12rpx">私钥只存在本机，不会上传。第一次用请先在小程序后台把 https://apis.bemfa.com 加入 request 合法域名。</text>
+    </block>
+  </view>
+
+  <view class="card" wx:if="{{mode === 'lan'}}">
+    <view class="card-t">设备地址</view>
+    <input class="input" style="width:100%" value="{{draft}}" bindinput="onDraft" placeholder="192.168.4.1 或 192.168.1.23" />
+    <input class="input" style="width:100%;margin-top:12rpx" value="{{appToken}}" bindinput="onAppToken" placeholder="访问令牌（连自建服务器时填）" />
+    <text class="sub" style="margin-top:12rpx">首次配网连热点后用 192.168.4.1；接入路由器后填路由器分配到的 IP。
+用自建服务器时填 https://你的域名，并把服务器上的 APP_TOKEN 填到上面。</text>
+    <view class="row" style="margin-top:16rpx">
+      <button class="btn btn-primary" bindtap="saveBase">保存并测试连接</button>
+      <text class="sub">当前：{{base}}</text>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{mode === 'lan'}}">
+    <view class="card-t">WiFi 设置</view>
+    <view class="row">
+      <button class="btn" bindtap="scan" loading="{{scanning}}">扫描附近 WiFi</button>
+    </view>
+    <view class="row" style="margin-top:14rpx" wx:if="{{networks.length}}">
+      <view class="input" style="padding:10rpx 16rpx;margin:6rpx" wx:for="{{networks}}" wx:key="ssid"
+        bindtap="pickNet" data-ssid="{{item.ssid}}">
+        {{item.ssid}} · {{item.rssi}}
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="lab">WiFi 名称</text>
+      <input class="input" value="{{ssid}}" bindinput="onSsid" placeholder="MyHome" />
+    </view>
+    <view class="field">
+      <text class="lab">WiFi 密码</text>
+      <input class="input" password value="{{pass}}" bindinput="onPass" placeholder="留空不修改" />
+    </view>
+    <view class="row" style="margin-top:16rpx">
+      <button class="btn btn-primary" bindtap="saveWifi">保存 WiFi 并重启</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-t">设备</view>
+    <view class="field">
+      <text class="lab">设备名称</text>
+      <input class="input" value="{{host}}" bindinput="onHost" placeholder="icebot" />
+    </view>
+    <view class="field">
+      <text class="lab">时区（分钟）</text>
+      <input class="input" type="number" value="{{tzMin}}" bindblur="saveTz" placeholder="480" />
+    </view>
+    <view class="row" style="margin-top:16rpx">
+      <button class="btn" bindtap="reboot">重启设备</button>
+      <button class="btn btn-danger" bindtap="reset">恢复出厂</button>
+    </view>
+    <text class="sub" style="margin-top:12rpx">固件版本 v{{fw || '-'}}。舵机角度校准请用网页端。</text>
+  </view>
+
+  <view class="card">
+    <view class="card-t">远程控制（云模式）</view>
+    <button class="btn btn-primary" bindtap="goCloud">进入云端模式</button>
+    <text class="sub" style="margin-top:12rpx">手机不在家里 WiFi 时用它。需要先开通微信云开发、填好 cloud-config.js 的 env、并部署云函数 icebot（见 docs/cloud.md）。</text>
+  </view>
+
+  <view class="card">
+    <view class="card-t">预留功能（后续版本）</view>
+    <view class="row">
+      <button class="btn" bindtap="soon" data-name="远程控制(MQTT)">远程控制</button>
+      <button class="btn" bindtap="soon" data-name="OTA 升级">OTA 升级</button>
+      <button class="btn" bindtap="soon" data-name="传感器">传感器</button>
+      <button class="btn" bindtap="soon" data-name="红外遥控">红外遥控</button>
+    </view>
+    <text class="sub" style="margin-top:14rpx">对应固件 /api/v1/* 接口，当前返回 501，接口已注册。</text>
+  </view>
+
+  <view class="card">
+    <view class="card-t">运行日志</view>
+    <view class="row">
+      <button class="btn" bindtap="loadLogs">刷新</button>
+    </view>
+    <view style="margin-top:14rpx">
+      <text class="sub" wx:for="{{logs}}" wx:key="index">{{item}}</text>
+      <text class="sub" wx:if="{{!logs.length}}">暂无日志</text>
+    </view>
+  </view>
+</view>

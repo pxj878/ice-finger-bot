@@ -1,0 +1,32 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+
+# 本地验证配置（含 WiFi 明文密码）
+firmware/platformio.local.ini
+
+# 自检日志
+logs/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 其它
+.DS_Store
+Thumbs.db
+
+# 小程序自动化依赖
+node_modules/
+
+# 备份
+backup/
+
+# 服务器运行时数据
+server/data/
+
+# 发布打包产物
+release/

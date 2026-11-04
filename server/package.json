@@ -1,0 +1,13 @@
+{
+  "name": "icebot-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "制冰机手指机器人 - 云服务器中转（零依赖 Node.js）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

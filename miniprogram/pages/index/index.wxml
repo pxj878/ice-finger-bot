@@ -1,0 +1,100 @@
+<view class="wrap">
+  <view class="hd">
+    <view class="dot {{busy ? 'busy' : 'live'}}"></view>
+    <text class="hd-t">制冰机手指机器人</text>
+  </view>
+  <text class="sub">{{hint ? hint : (status.mode + ' · ' + status.name + ' · ' + status.ip)}}</text>
+  <text class="sub">{{base}}</text>
+
+  <view class="card">
+    <view class="card-t">设备状态</view>
+    <view class="grid">
+      <view class="kv">
+        <text class="k">制冰机</text>
+        <text class="v">{{power ? '开机中' : '已关机'}}</text>
+      </view>
+      <view class="kv">
+        <text class="k">舵机</text>
+        <text class="v">{{busy ? '动作中…' : ('待机 ' + cur + '°')}}</text>
+      </view>
+      <view class="kv">
+        <text class="k">WiFi</text>
+        <text class="v">{{status.ssid || '未连接'}}</text>
+      </view>
+      <view class="kv">
+        <text class="k">信号</text>
+        <text class="v">{{status.rssi ? status.rssi + ' dBm' : '-'}}</text>
+      </view>
+      <view class="kv">
+        <text class="k">设备时间</text>
+        <text class="v">{{status.timeOk ? status.time : '未同步'}}</text>
+      </view>
+      <view class="kv">
+        <text class="k">定时任务</text>
+        <text class="v">{{status.tasks || 0}} 条{{status.sched ? '' : '（已停用）'}}</text>
+      </view>
+    </view>
+
+    <view class="sep"></view>
+
+    <view class="row">
+      <button class="btn btn-primary" bindtap="act" data-a="press">👆 按一下</button>
+      <button class="btn btn-ok" bindtap="act" data-a="on">设为开机</button>
+      <button class="btn" bindtap="act" data-a="off">设为关机</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-t">舵机校准（拖滑块舵机立刻跟到该角度）</view>
+
+    <view class="row" style="justify-content:space-between">
+      <text class="lab">抬起角度（离开按钮）</text>
+      <text class="val">{{rest}}°</text>
+    </view>
+    <slider min="0" max="120" step="1" value="{{rest}}" activeColor="#38bdf8" block-size="22"
+      bindchange="onRest" bindchanging="onRestDrag" />
+    <view class="row">
+      <button class="btn btn-mini" bindtap="onRestStep" data-d="-1">−1°</button>
+      <button class="btn btn-mini" bindtap="onRestStep" data-d="1">+1°</button>
+      <button class="btn btn-mini" bindtap="previewRest">预览抬起</button>
+    </view>
+
+    <view class="row" style="justify-content:space-between;margin-top:14rpx">
+      <text class="lab">压下角度（按下按钮）</text>
+      <text class="val">{{press}}°</text>
+    </view>
+    <slider min="10" max="180" step="1" value="{{press}}" activeColor="#38bdf8" block-size="22"
+      bindchange="onPress" />
+    <view class="row">
+      <button class="btn btn-mini" bindtap="onPressStep" data-d="-1">−1°</button>
+      <button class="btn btn-mini" bindtap="onPressStep" data-d="1">+1°</button>
+      <button class="btn btn-mini" bindtap="previewPress">预览压下</button>
+    </view>
+
+    <view class="row" style="justify-content:space-between;margin-top:16rpx">
+      <text class="lab">按住时长</text>
+      <text class="val">{{holdMs}} ms</text>
+    </view>
+    <slider min="100" max="1500" step="50" value="{{holdMs}}" activeColor="#38bdf8" block-size="22"
+      bindchange="onHold" />
+
+    <view class="row" style="margin-top:16rpx">
+      <button class="btn" bindtap="saveServo">保存角度</button>
+      <button class="btn btn-primary" bindtap="testPress">试按一次</button>
+    </view>
+    <text class="sub" style="margin-top:10rpx">提示：按下时舵机一直嗡嗡响就是压太深了，把压下角度调小 3~5°。</text>
+  </view>
+
+  <view class="card">
+    <view class="card-t">快捷操作</view>
+    <view class="row">
+      <button class="btn" bindtap="syncTime">用手机时间对时</button>
+      <button class="btn" bindtap="goSchedule">管理定时任务</button>
+      <button class="btn" bindtap="goSettings">网络设置</button>
+    </view>
+  </view>
+
+  <view class="foot">
+    固件 v{{status.fw || '-'}} · 下拉可刷新
+  </view>
+</view>
